@@ -124,4 +124,8 @@ venv.bak/
 test-*.xml
 tests/node_modules
 tests/package*.json
+Github CICD/tests/node_modules/
+Github CICD/tests/package*.json
+**/.vscode/
+**/.idea/
 .pytest_cache

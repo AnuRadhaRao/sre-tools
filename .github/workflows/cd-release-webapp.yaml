@@ -49,7 +49,7 @@ jobs:
 
       - name: 'Deploy resources'
         run: |
-          az deployment group create --template-file deploy/webapp.bicep -g $ARM_RES_GROUP -p webappName=$APP_NAME \
+          az deployment group create --template-file "Github CICD/deploy/webapp.bicep" -g $ARM_RES_GROUP -p webappName=$APP_NAME \
           webappImage=$IMAGE_REG/$IMAGE_REPO:${{ github.event.inputs.IMAGE_TAG }} \
           releaseInfo="Ref=${{ github.ref }} RunId=${{ github.run_id }}"
 
@@ -72,6 +72,7 @@ jobs:
         run: .github/scripts/url-check.sh -u https://${APP_NAME}.azurewebsites.net/ -s "Flask" -t 200
 
       - name: 'Run API tests'
+        working-directory: Github CICD
         run: |
           npm install newman --silent
           node_modules/newman/bin/newman.js run tests/postman_collection.json --global-var apphost=${APP_NAME}.azurewebsites.net

@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
     paths:
-      - 'src/**'
+      - 'Github CICD/src/**'
   pull_request:
 
 permissions:
@@ -20,6 +20,9 @@ jobs:
   test:
     name: 'Tests & Linting'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Github CICD
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
@@ -34,21 +37,24 @@ jobs:
       - name: 'Upload test results'
         uses: actions/upload-artifact@v4
         # Disabled when running locally with the nektos/act tool
-        if: ${{ always() && !env.ACT && hashFiles('test-results.xml') != '' }}
+        if: ${{ always() && !env.ACT && hashFiles('Github CICD/test-results.xml') != '' }}
         with:
           name: test-results
-          path: ./test-results.xml
+          path: Github CICD/test-results.xml
 
       - name: 'Publish test results'
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: ${{ always() && !env.ACT && hashFiles('test-results.xml') != '' }}
+        if: ${{ always() && !env.ACT && hashFiles('Github CICD/test-results.xml') != '' }}
         with:
-          files: test-results.xml
+          files: Github CICD/test-results.xml
 
   build:
     name: 'Build & Push Image'
     needs: test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Github CICD
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2

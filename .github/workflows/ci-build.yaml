@@ -1,11 +1,16 @@
 name: CI Build App
 
+# Scoped to the CI/CD crash course project, so other projects in this repo don't trigger it.
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
-      - 'Github CICD/src/**'
+      - 'Github CICD/**'
+      - '.github/workflows/ci-build.yaml'
   pull_request:
+    paths:
+      - 'Github CICD/**'
+      - '.github/workflows/ci-build.yaml'
 
 permissions:
   checks: write
@@ -26,6 +31,12 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
+
+      # The runner's default Python is now 3.14, which the pinned Werkzeug 2.2.2 can't import.
+      - name: 'Set up Python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: 'Run linting'
         run: make lint

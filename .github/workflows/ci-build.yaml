@@ -32,6 +32,12 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v2
 
+      # The runner's default Python is now 3.14, which the pinned Werkzeug 2.2.2 can't import.
+      - name: 'Set up Python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: 'Run linting'
         run: make lint
 

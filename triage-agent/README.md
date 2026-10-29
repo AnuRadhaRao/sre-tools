@@ -27,6 +27,28 @@ curl -X POST localhost:8080/webhook/alertmanager \
 
 `examples/alert.json` is a made-up alert. The service stops cleanly on `SIGTERM` or `Ctrl+C`.
 
+## Run in Docker
+
+```sh
+cd triage-agent
+docker build -t triage-agent:dev .
+docker run --rm -p 8080:8080 triage-agent:dev
+```
+
+Then send `examples/alert.json` as above. The image contains only the `triage_agent` package and runs it with `python -m triage_agent`, so `docker stop` reaches the process directly and it shuts down in under a second.
+
+## Image registry
+
+The image is never published to a public registry. It's kept in a private Docker Hub repository, `anuradhaarao12/devopslearning`. That one repository holds images for several projects, so tags are prefixed with the project name.
+
+```sh
+docker login
+docker tag triage-agent:dev anuradhaarao12/devopslearning:triage-agent-0.1.0
+docker push anuradhaarao12/devopslearning:triage-agent-0.1.0
+```
+
+Pulling it needs Docker Hub credentials with access to that repository.
+
 ## Test
 
 ```sh

@@ -129,3 +129,6 @@ Github CICD/tests/package*.json
 **/.vscode/
 **/.idea/
 .pytest_cache
+# Python
+__pycache__/
+.pytest_cache/

@@ -1,0 +1,18 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "triage-agent",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {"alertname": "CheckoutHigh5xxRate", "severity": "critical", "service": "checkout"},
+      "annotations": {
+        "summary": "checkout is returning too many 5xx responses",
+        "description": "5xx rate above 5% for 5 minutes",
+        "runbook_url": "http://runbooks/checkout-5xx.md"
+      },
+      "startsAt": "2026-10-28T18:00:00Z",
+      "fingerprint": "a1b2c3d4"
+    }
+  ]
+}

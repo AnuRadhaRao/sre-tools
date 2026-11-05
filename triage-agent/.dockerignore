@@ -1,0 +1,4 @@
+# Only the triage_agent package goes into the image.
+*
+!triage_agent/
+**/__pycache__

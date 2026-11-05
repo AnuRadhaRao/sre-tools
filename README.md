@@ -5,3 +5,4 @@ This repository holds separate projects and exercises as I learn different tools
 ## Projects
 
 - [GitHub and GitLab CI/CD crash course](Github%20CICD/README.md) — Flask demo app, pipeline examples, and notes on the compatibility updates made for this project.
+- [triage-agent](triage-agent/README.md) — an AI on-call triage agent, built up into a containerised stack.

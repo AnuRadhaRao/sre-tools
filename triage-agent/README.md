@@ -35,7 +35,17 @@ docker build -t triage-agent:dev .
 docker run --rm -p 8080:8080 triage-agent:dev
 ```
 
-Then send `examples/alert.json` as above. The image contains only the `triage_agent` package and runs it with `python -m triage_agent`, so `docker stop` reaches the process directly and it shuts down in under a second.
+Then send `examples/alert.json` as above.
+
+The Dockerfile has three stages:
+
+| Stage | Base | What it does |
+| --- | --- | --- |
+| `test` | `python:3.12-slim` | Installs pytest and runs the test suite. A failing test fails the build. |
+| `build` | `python:3.12-alpine` | Byte-compiles the package. |
+| `runtime` | `python:3.12-alpine` | Holds only the compiled package. This is the image you run. |
+
+Base images are pinned by digest, so a rebuild uses the same bases until the pin is updated. The runtime image is about 74 MB, down from 177 MB with the earlier single-stage `python:3.12-slim` build. It runs the app with `python -m triage_agent`, so `docker stop` reaches the process directly and it shuts down in under a second.
 
 ## Image registry
 

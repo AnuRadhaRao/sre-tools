@@ -1,4 +1,9 @@
-# Only the triage_agent package goes into the image.
+# Only what the build stages use goes into the build context.
 *
 !triage_agent/
+!tests/
+!examples/
+!pytest.ini
+!requirements-dev.txt
 **/__pycache__
+**/.pytest_cache

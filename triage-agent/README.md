@@ -47,6 +47,18 @@ The Dockerfile has three stages:
 
 Base images are pinned by digest, so a rebuild uses the same bases until the pin is updated. The runtime image is about 74 MB, down from 177 MB with the earlier single-stage `python:3.12-slim` build. It runs the app with `python -m triage_agent`, so `docker stop` reaches the process directly and it shuts down in under a second.
 
+The runtime image also:
+
+- runs as an unprivileged user (uid `10001`), so the app can read its code but can't change it;
+- has a `HEALTHCHECK` that calls `/healthz` every 30 seconds, so `docker ps` shows `healthy` or `unhealthy`;
+- carries standard [OCI labels](https://github.com/opencontainers/image-spec/blob/main/annotations.md) for the title, source, version and git commit. Pass the last two at build time:
+
+```sh
+docker build -t triage-agent:dev \
+  --build-arg VERSION=0.1.0 --build-arg REVISION=$(git rev-parse --short HEAD) .
+docker inspect -f '{{json .Config.Labels}}' triage-agent:dev
+```
+
 ## Image registry
 
 The image is never published to a public registry. It's kept in a private Docker Hub repository, `anuradhaarao12/devopslearning`. That one repository holds images for several projects, so tags are prefixed with the project name.

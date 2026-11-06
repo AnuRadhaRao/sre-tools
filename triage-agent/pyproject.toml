@@ -1,0 +1,22 @@
+# Lint and format settings for triage-agent. The service itself has no
+# packaging metadata yet; it runs with `python -m triage_agent`.
+
+[tool.ruff]
+target-version = "py310"   # README promises Python 3.10 or later
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E", "W",  # pycodestyle errors and warnings
+  "F",       # pyflakes: unused imports, undefined names
+  "I",       # import sorting
+  "B",       # bugbear: likely bugs such as mutable default arguments
+  "UP",      # pyupgrade: use syntax the target Python supports
+  "S",       # bandit: basic security checks
+  "SIM",     # simplifications
+  "RUF",     # ruff's own checks
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use plain assert (S101) and call the local test server with urllib (S310).
+"tests/**" = ["S101", "S310"]

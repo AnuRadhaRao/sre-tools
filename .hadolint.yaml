@@ -1,0 +1,7 @@
+# hadolint settings for every Dockerfile outside Github CICD/. Rule list:
+# https://github.com/hadolint/hadolint#rules
+#
+# Warnings and errors fail the check; style and info findings are only printed.
+# No rules are ignored today. If one ever has to be, add it under `ignored:`
+# with a comment saying why, rather than disabling it inline.
+failure-threshold: warning

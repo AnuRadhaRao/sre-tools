@@ -38,7 +38,10 @@ def triage(alert: Alert, model: Model, sources: dict | None = None) -> Triage:
     context, missing = gather_context(alert, sources or {})
     summary = model.summarize(alert, context)
     if set(summary) != set(SUMMARY_FIELDS):
-        raise ValueError(f"model {model.name} returned fields {sorted(summary)}, expected {sorted(SUMMARY_FIELDS)}")
+        raise ValueError(
+            f"model {model.name} returned fields {sorted(summary)}, "
+            f"expected {sorted(SUMMARY_FIELDS)}"
+        )
     return Triage(
         alert=alert.name,
         fingerprint=alert.fingerprint,

@@ -1,0 +1,18 @@
+# Runs the same linters as .github/workflows/lint.yaml before each commit.
+# Setup: pip install pre-commit && pre-commit install
+exclude: ^Github CICD/
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.23.3
+    hooks:
+      - id: markdownlint-cli2
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      # Uses the hadolint binary on your PATH (brew install hadolint, or the release binary).
+      - id: hadolint

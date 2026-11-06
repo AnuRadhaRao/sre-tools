@@ -1,0 +1,15 @@
+# markdownlint-cli2 settings for the whole repo. Rule list:
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+config:
+  default: true
+  # Prose is written one paragraph per line, so a line-length limit only adds noise.
+  MD013: false
+  # The same heading text is fine under different parent sections (for example "Run").
+  MD024:
+    siblings_only: true
+
+# Github CICD/ is the upstream tutorial code this repo started from, not mine to restyle.
+ignores:
+  - "Github CICD/**"
+  - "**/.pytest_cache/**"
+  - "**/node_modules/**"

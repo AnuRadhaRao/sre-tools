@@ -1,0 +1,64 @@
+name: Lint
+
+# Rule-based checks for Python, Markdown and Dockerfiles. Each tool reads its
+# settings from the repo (triage-agent/pyproject.toml, .markdownlint-cli2.yaml,
+# .hadolint.yaml), so CI and pre-commit apply the same rules.
+# Github CICD/ is the upstream tutorial code and keeps its own CI.
+on:
+  pull_request:
+    paths-ignore:
+      - 'Github CICD/**'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'Github CICD/**'
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: triage-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install ruff==0.16.9
+      - name: Lint
+        run: ruff check --output-format=github .
+      - name: Check formatting
+        run: ruff format --check .
+
+  markdown:
+    name: Markdown (markdownlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npx --yes markdownlint-cli2@0.23.3 "**/*.md"
+
+  dockerfile:
+    name: Dockerfile (hadolint)
+    runs-on: ubuntu-latest
+    env:
+      HADOLINT_VERSION: v2.14.0
+      HADOLINT_SHA256: 6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install hadolint (checksum verified)
+        run: |
+          curl -sSfL -o /usr/local/bin/hadolint \
+            "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-linux-x86_64"
+          echo "${HADOLINT_SHA256}  /usr/local/bin/hadolint" | sha256sum -c -
+          chmod +x /usr/local/bin/hadolint
+      - name: Lint
+        run: |
+          find . -name 'Dockerfile*' -not -path './Github CICD/*' -print0 \
+            | xargs -0 -t hadolint --format tty

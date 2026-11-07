@@ -15,7 +15,10 @@ class Alert:
 
 
 def parse_alertmanager(payload: dict) -> list[Alert]:
-    """Turn an Alertmanager webhook body (version 4) into alerts. Raises ValueError if it isn't one."""
+    """Turn an Alertmanager webhook body (version 4) into alerts.
+
+    Raises ValueError if the body isn't one.
+    """
     if not isinstance(payload, dict) or not isinstance(payload.get("alerts"), list):
         raise ValueError("expected an Alertmanager webhook body with an 'alerts' list")
 

@@ -12,7 +12,9 @@ def alert(alert_payload):
 
 def test_stub_triage_uses_context(alert):
     sources = {
-        "logs": lambda a: {"top_errors": ["TimeoutError: db pool exhausted", "HTTP 502 from payments"]},
+        "logs": lambda a: {
+            "top_errors": ["TimeoutError: db pool exhausted", "HTTP 502 from payments"]
+        },
         "tickets": lambda a: {"tickets": ["CUST-1", "CUST-2"]},
         "runbook": lambda a: {"runbook_steps": ["Check db pool size", "Restart checkout"]},
     }

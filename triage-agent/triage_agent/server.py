@@ -24,7 +24,9 @@ class TriageStore:
             return list(self._items)
 
 
-def make_server(port: int, model, store: TriageStore, sources: dict | None = None) -> ThreadingHTTPServer:
+def make_server(
+    port: int, model, store: TriageStore, sources: dict | None = None
+) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/healthz":
@@ -66,4 +68,5 @@ def make_server(port: int, model, store: TriageStore, sources: dict | None = Non
             # One line per request on stdout, so `docker logs` shows it.
             print(f"{self.address_string()} {fmt % args}", flush=True)
 
-    return ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    # Listen on all interfaces: inside a container that's how a published port reaches the app.
+    return ThreadingHTTPServer(("0.0.0.0", port), Handler)  # noqa: S104

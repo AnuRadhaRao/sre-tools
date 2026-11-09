@@ -1,0 +1,23 @@
+# The local triage-agent stack. `docker compose up -d --wait` returns once
+# every service reports healthy. Prometheus and Alertmanager join next.
+name: triage
+
+services:
+  agent:
+    build: .
+    image: triage-agent:dev
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # Demo service that gets broken on purpose, so there is something to alert on.
+  checkout:
+    build: demo/checkout
+    image: triage-checkout:dev
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+networks:
+  default:
+    name: triage

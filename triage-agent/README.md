@@ -59,6 +59,28 @@ docker build -t triage-agent:dev \
 docker inspect -f '{{json .Config.Labels}}' triage-agent:dev
 ```
 
+## Run the stack with Compose
+
+`compose.yaml` runs the agent next to a demo `checkout` service on one network, called `triage`:
+
+| Service | Port | What it is |
+| --- | --- | --- |
+| `agent` | 8080 | This service. |
+| `checkout` | 8081 | A small demo service in [`demo/checkout`](demo/checkout/checkout.py) that can be broken on purpose. It serves `/metrics` in Prometheus format. |
+
+Both images use the same pattern: tests gate the build, the runtime is Alpine, and the app runs as a non-root user with a health check.
+
+```sh
+cd triage-agent
+docker compose up -d --build --wait   # returns once both services are healthy
+curl localhost:8081/checkout                          # {"order": "placed"}
+curl -X POST 'localhost:8081/admin/fail-rate?rate=1'  # every checkout now fails
+curl -s localhost:8081/metrics | grep http_requests_total
+docker compose down
+```
+
+Inside the network, services reach each other by name, for example `http://agent:8080/healthz`.
+
 ## Image registry
 
 The image is never published to a public registry. It's kept in a private Docker Hub repository, `anuradhaarao12/devopslearning`. That one repository holds images for several projects, so tags are prefixed with the project name.

@@ -19,4 +19,8 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests use plain assert (S101) and call the local test server with urllib (S310).
-"tests/**" = ["S101", "S310"]
+"**/tests/**" = ["S101", "S310"]
+
+[tool.ruff.lint.isort]
+# The demo service is imported by its own tests as a top-level module.
+known-first-party = ["triage_agent", "checkout"]

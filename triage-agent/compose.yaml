@@ -1,5 +1,10 @@
 # The local triage-agent stack. `docker compose up -d --wait` returns once
-# every service reports healthy. Prometheus and Alertmanager join next.
+# every service with a health check reports healthy.
+#
+#   loadgen ──> checkout <── scrape ── prometheus ──> alertmanager ──> agent
+#
+# Breaking checkout raises its error rate, Prometheus fires CheckoutHigh5xxRate,
+# and Alertmanager posts it to the agent's webhook.
 name: triage
 
 services:
@@ -16,6 +21,53 @@ services:
     image: triage-checkout:dev
     ports:
       - "8081:8080"
+    restart: unless-stopped
+
+  # Steady traffic, so checkout has an error rate to measure. Same image, other entry point.
+  loadgen:
+    image: triage-checkout:dev
+    command: ["python", "loadgen.py"]
+    healthcheck:
+      disable: true
+    depends_on:
+      checkout:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      checkout:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1@sha256:e9733bafb1bdef9b00e25a21f8f99dc26a22224bf16641ad754d1649f4c3357a
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9093/-/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    # Alertmanager only starts once the agent it delivers to is up.
+    depends_on:
+      agent:
+        condition: service_healthy
     restart: unless-stopped
 
 networks:

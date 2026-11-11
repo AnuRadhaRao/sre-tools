@@ -1,32 +1,14 @@
 import json
-import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .alerts import parse_alertmanager
+from .store import Store
 from .triage import triage
 
 MAX_BODY_BYTES = 1_000_000
 
 
-class TriageStore:
-    """Recent triages in memory. Persistence comes with the database."""
-
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._items: list[dict] = []
-
-    def add(self, item: dict) -> None:
-        with self._lock:
-            self._items.append(item)
-
-    def all(self) -> list[dict]:
-        with self._lock:
-            return list(self._items)
-
-
-def make_server(
-    port: int, model, store: TriageStore, sources: dict | None = None
-) -> ThreadingHTTPServer:
+def make_server(port: int, model, store: Store, sources: dict | None = None) -> ThreadingHTTPServer:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/healthz":

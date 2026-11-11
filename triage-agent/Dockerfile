@@ -4,18 +4,21 @@
 # so a broken image can't be produced.
 FROM python:3.12-slim@sha256:4840d514c583a4d3d8cad3940e68dee6f0f6f3635c12fcd0a3d74c21a5b93a54 AS test
 WORKDIR /src
-COPY requirements-dev.txt .
+COPY requirements.txt requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements-dev.txt
 COPY . .
 RUN pytest -q
 
-# Stage 2: byte-compile the package once, so the runtime image needs no write access to it.
+# Stage 2: install runtime dependencies into /install and byte-compile the package,
+# so the runtime image needs neither pip's cache nor write access to the code.
 FROM python:3.12-alpine@sha256:2f83d24758cf1ad4a38975d83bf48e5d10b121499bffec99daf7a07a437207b9 AS build
 WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 COPY triage_agent ./triage_agent
 RUN python -m compileall -q triage_agent
 
-# Stage 3: the runtime image. Alpine base, the compiled package and nothing else.
+# Stage 3: the runtime image. Alpine base, the dependencies, the compiled package and nothing else.
 FROM python:3.12-alpine@sha256:2f83d24758cf1ad4a38975d83bf48e5d10b121499bffec99daf7a07a437207b9 AS runtime
 
 # Standard OCI labels. VERSION and REVISION are passed in at build time so
@@ -39,6 +42,7 @@ RUN addgroup -S -g 10001 app && adduser -S -D -H -u 10001 -G app app
 WORKDIR /app
 # Only finish once tests have passed: this line makes the runtime stage depend on the test stage.
 COPY --from=test /src/pytest.ini /tmp/tests-passed
+COPY --from=build /install /usr/local
 COPY --from=build /app/triage_agent ./triage_agent
 
 # Files stay owned by root, so the app can read its code but not change it.

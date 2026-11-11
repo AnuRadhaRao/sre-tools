@@ -1,18 +1,55 @@
 # The local triage-agent stack. `docker compose up -d --wait` returns once
-# every service with a health check reports healthy.
+# every service with a health check reports healthy. Needs a .env file with
+# POSTGRES_PASSWORD; copy .env.example to start.
 #
 #   loadgen ──> checkout <── scrape ── prometheus ──> alertmanager ──> agent
 #
 # Breaking checkout raises its error rate, Prometheus fires CheckoutHigh5xxRate,
-# and Alertmanager posts it to the agent's webhook.
+# and Alertmanager posts it to the agent's webhook. The agent stores each triage
+# in Postgres, on a named volume, so triages survive `docker compose down`.
 name: triage
 
 services:
   agent:
     build: .
     image: triage-agent:dev
+    environment:
+      DATABASE_URL: postgresql://triage:${POSTGRES_PASSWORD:?copy .env.example to .env}@postgres:5432/triage
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Not published to the host: the agent and Adminer reach it on the network.
+  postgres:
+    image: postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    environment:
+      POSTGRES_DB: triage
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?copy .env.example to .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "triage", "-d", "triage"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Web UI for the database: http://localhost:8082, server "postgres", user "triage".
+  adminer:
+    image: adminer:5.4.1@sha256:a3167350c4eb9ae4473b8ea0f49c8e5ae74c87b240ee2f6086521dba2a6bf243
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    # The image listens on [::] only, which fails on hosts with IPv6 turned off in Docker.
+    command: ["php", "-S", "0.0.0.0:8080", "-t", "/var/www/html"]
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   # Demo service that gets broken on purpose, so there is something to alert on.
@@ -69,6 +106,10 @@ services:
       agent:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  # Named volume: survives `docker compose down`; `down -v` deletes it.
+  pgdata:
 
 networks:
   default:

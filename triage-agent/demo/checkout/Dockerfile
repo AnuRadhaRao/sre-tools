@@ -16,7 +16,7 @@ RUN addgroup -S -g 10001 app && adduser -S -D -H -u 10001 -G app app
 WORKDIR /app
 # Makes the runtime stage depend on the test stage, so tests always run.
 COPY --from=test /src/pytest.ini /tmp/tests-passed
-COPY checkout.py .
+COPY checkout.py loadgen.py ./
 USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \

@@ -1,0 +1,16 @@
+groups:
+  - name: checkout
+    rules:
+      # More than 20% of checkouts failing for 30 seconds. Short windows keep the
+      # demo quick; a real service would use minutes, not seconds.
+      - alert: CheckoutHigh5xxRate
+        expr: |
+          sum(rate(http_requests_total{job="checkout", path="/checkout", code=~"5.."}[30s]))
+            / sum(rate(http_requests_total{job="checkout", path="/checkout"}[30s])) > 0.2
+        for: 30s
+        labels:
+          severity: critical
+          service: checkout
+        annotations:
+          summary: "Checkout is failing for {{ $value | humanizePercentage }} of requests"
+          runbook_url: "http://runbooks/checkout-5xx.md"

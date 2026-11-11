@@ -1,0 +1,14 @@
+# Every alert goes to the triage agent's webhook. group_wait is short so the
+# demo is quick; the agent skips resolved notifications.
+route:
+  receiver: triage-agent
+  group_by: [alertname, service]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 4h
+
+receivers:
+  - name: triage-agent
+    webhook_configs:
+      - url: http://agent:8080/webhook/alertmanager
+        send_resolved: true

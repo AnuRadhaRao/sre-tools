@@ -22,5 +22,5 @@ select = [
 "**/tests/**" = ["S101", "S310"]
 
 [tool.ruff.lint.isort]
-# The demo service is imported by its own tests as a top-level module.
-known-first-party = ["triage_agent", "checkout"]
+# The demo modules are imported by their own tests as top-level modules.
+known-first-party = ["triage_agent", "checkout", "loadgen"]

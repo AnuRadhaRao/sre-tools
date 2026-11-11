@@ -1,6 +1,7 @@
 # Only what the build stages use goes into the build context.
 *
 !checkout.py
+!loadgen.py
 !tests/
 !pytest.ini
 !requirements-dev.txt

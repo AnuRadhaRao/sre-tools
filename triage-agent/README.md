@@ -61,25 +61,35 @@ docker inspect -f '{{json .Config.Labels}}' triage-agent:dev
 
 ## Run the stack with Compose
 
-`compose.yaml` runs the agent next to a demo `checkout` service on one network, called `triage`:
+`compose.yaml` runs the agent with everything it needs to receive a real alert, on one network called `triage`:
+
+```text
+loadgen ──> checkout <── scrape ── prometheus ──> alertmanager ──> agent
+```
 
 | Service | Port | What it is |
 | --- | --- | --- |
 | `agent` | 8080 | This service. |
 | `checkout` | 8081 | A small demo service in [`demo/checkout`](demo/checkout/checkout.py) that can be broken on purpose. It serves `/metrics` in Prometheus format. |
+| `loadgen` | none | Sends steady traffic to `checkout`, so it has an error rate. |
+| `prometheus` | 9090 | Scrapes `checkout` and evaluates [`monitoring/rules.yml`](monitoring/rules.yml). |
+| `alertmanager` | 9093 | Sends every alert to the agent's webhook ([`monitoring/alertmanager.yml`](monitoring/alertmanager.yml)). |
 
-Both images use the same pattern: tests gate the build, the runtime is Alpine, and the app runs as a non-root user with a health check.
+Startup is ordered by health, not just by start: Alertmanager waits for the agent to be healthy, and Prometheus and `loadgen` wait for `checkout`. The agent and `checkout` images use the same pattern: tests gate the build, the runtime is Alpine, and the app runs as a non-root user with a health check. Prometheus and Alertmanager are pinned by version and digest.
+
+Break `checkout` and watch the alert arrive:
 
 ```sh
 cd triage-agent
-docker compose up -d --build --wait   # returns once both services are healthy
-curl localhost:8081/checkout                          # {"order": "placed"}
-curl -X POST 'localhost:8081/admin/fail-rate?rate=1'  # every checkout now fails
-curl -s localhost:8081/metrics | grep http_requests_total
+docker compose up -d --build --wait                   # returns once everything is healthy
+curl -X POST 'localhost:8081/admin/fail-rate?rate=0.8' # 80% of checkouts now fail
+# about a minute later: the rule fires (30s window, 30s "for"), Alertmanager groups it for 10s
+curl -s localhost:8080/triages                         # the agent's triage of CheckoutHigh5xxRate
+curl -X POST 'localhost:8081/admin/fail-rate?rate=0'   # fix it again
 docker compose down
 ```
 
-Inside the network, services reach each other by name, for example `http://agent:8080/healthz`.
+The rule's windows are seconds rather than minutes so the demo is quick. Inside the network, services reach each other by name, for example `http://agent:8080/healthz`.
 
 ## Image registry
 

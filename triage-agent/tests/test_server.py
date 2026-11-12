@@ -6,12 +6,13 @@ import urllib.request
 import pytest
 
 from triage_agent.model import StubModel
-from triage_agent.server import TriageStore, make_server
+from triage_agent.server import make_server
+from triage_agent.store import MemoryStore
 
 
 @pytest.fixture
 def app():
-    srv = make_server(0, StubModel(), TriageStore())
+    srv = make_server(0, StubModel(), MemoryStore())
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{srv.server_port}"
     srv.shutdown()

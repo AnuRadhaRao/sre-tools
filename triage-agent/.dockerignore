@@ -4,6 +4,7 @@
 !tests/
 !examples/
 !pytest.ini
+!requirements.txt
 !requirements-dev.txt
 **/__pycache__
 **/.pytest_cache

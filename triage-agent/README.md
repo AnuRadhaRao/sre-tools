@@ -126,3 +126,8 @@ docker run -d --name pg-test -e POSTGRES_PASSWORD=test -p 15432:5432 postgres:17
 TEST_DATABASE_URL=postgresql://postgres:test@127.0.0.1:15432/postgres pytest
 docker rm -f pg-test
 ```
+
+In CI, [`.github/workflows/triage-agent.yaml`](../.github/workflows/triage-agent.yaml) runs on every change under `triage-agent/`:
+
+- It builds both images with Buildx, with layers cached per image in the GitHub Actions cache. Each Dockerfile's test stage runs the unit tests, so a failing test fails the build.
+- It runs the tests against a Postgres service container. `REQUIRE_DATABASE_TESTS=1` is set there, so if the database is missing, the Postgres cases fail instead of being skipped.

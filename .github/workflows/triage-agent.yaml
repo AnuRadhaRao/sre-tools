@@ -1,0 +1,90 @@
+name: triage-agent
+
+# Builds both triage-agent images and runs the database tests whenever
+# triage-agent/ or this workflow changes. Images are built, not pushed:
+# publishing to the private registry comes later.
+on:
+  pull_request:
+    paths:
+      - 'triage-agent/**'
+      - '.github/workflows/triage-agent.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'triage-agent/**'
+      - '.github/workflows/triage-agent.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: triage-agent-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build ${{ matrix.image }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: agent
+            context: triage-agent
+          - image: checkout
+            context: triage-agent/demo/checkout
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Each Dockerfile has a test stage, so this build also runs the unit tests:
+      # a failing test fails the build. Layers are cached in the GitHub Actions
+      # cache per image, so a change to app code doesn't reinstall dependencies.
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: false
+          load: true
+          tags: triage-${{ matrix.image }}:ci
+          build-args: |
+            VERSION=ci
+            REVISION=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+      - name: Report image size
+        run: docker image ls triage-${{ matrix.image }}:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}' >> "$GITHUB_STEP_SUMMARY"
+
+  postgres-tests:
+    name: Store tests against Postgres
+    runs-on: ubuntu-latest
+    # The same Postgres image the Compose stack runs, as a service container.
+    services:
+      postgres:
+        image: postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: triage-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: triage-agent/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      # REQUIRE_DATABASE_TESTS turns "no database, skipped" into a failure, so a
+      # broken service container can't let the Postgres tests pass by not running.
+      - name: pytest
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:ci-only@localhost:5432/postgres
+          REQUIRE_DATABASE_TESTS: '1'
+        run: pytest -q -rs

@@ -1,7 +1,8 @@
 name: triage-agent
 
-# Builds both triage-agent images and runs the database tests whenever
-# triage-agent/ or this workflow changes. Images are built, not pushed:
+# Builds both triage-agent images, runs the database tests and an end-to-end
+# smoke test of the Compose stack whenever triage-agent/ or this workflow
+# changes. Images are built, not pushed:
 # publishing to the private registry comes later.
 on:
   pull_request:
@@ -45,7 +46,10 @@ jobs:
           context: ${{ matrix.context }}
           push: false
           load: true
-          tags: triage-${{ matrix.image }}:ci
+          # :dev is the name compose.yaml uses, so the smoke test runs this exact image.
+          tags: |
+            triage-${{ matrix.image }}:ci
+            triage-${{ matrix.image }}:dev
           build-args: |
             VERSION=ci
             REVISION=${{ github.sha }}
@@ -53,6 +57,45 @@ jobs:
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
       - name: Report image size
         run: docker image ls triage-${{ matrix.image }}:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}' >> "$GITHUB_STEP_SUMMARY"
+      # Hand the built image to the smoke test job, so it tests what was built here.
+      - name: Save image
+        run: docker save triage-${{ matrix.image }}:dev -o "$RUNNER_TEMP/${{ matrix.image }}.tar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.image }}
+          path: ${{ runner.temp }}/${{ matrix.image }}.tar
+          retention-days: 1
+
+  smoke:
+    name: End-to-end smoke test
+    needs: image
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: triage-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/images
+          merge-multiple: true
+      - name: Load images
+        run: for f in "$RUNNER_TEMP"/images/*.tar; do docker load -i "$f"; done
+      # A throwaway password for this run only; .env is git-ignored.
+      - name: Start the stack
+        run: |
+          echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
+          docker compose up -d --no-build --wait --wait-timeout 120
+      # Breaks checkout and waits for the alert to reach the agent and Postgres.
+      - name: Smoke test
+        run: scripts/smoke-test.sh
+      - name: Show logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
 
   postgres-tests:
     name: Store tests against Postgres

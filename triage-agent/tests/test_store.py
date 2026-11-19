@@ -6,7 +6,8 @@ import pytest
 from triage_agent.store import MemoryStore, PostgresStore
 
 # The Postgres case needs a real database. Locally: start one and set TEST_DATABASE_URL
-# (see the README). Without it, only the in-memory store is tested.
+# (see the README). Without it, only the in-memory store is tested, unless
+# REQUIRE_DATABASE_TESTS is set (as in CI), which turns the skip into a failure.
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
 
 
@@ -31,6 +32,8 @@ def store(request):
     if request.param == "memory":
         return MemoryStore()
     if not TEST_DATABASE_URL:
+        if os.environ.get("REQUIRE_DATABASE_TESTS"):
+            pytest.fail("REQUIRE_DATABASE_TESTS is set but TEST_DATABASE_URL is not")
         pytest.skip("TEST_DATABASE_URL not set")
     import psycopg
 

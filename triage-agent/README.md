@@ -80,9 +80,7 @@ loadgen ──> checkout <── scrape ── prometheus ──> alertmanager �
 
 Startup is ordered by health, not just by start: the agent and Adminer wait for Postgres, Alertmanager waits for the agent, and Prometheus and `loadgen` wait for `checkout`. The agent and `checkout` images use the same pattern: tests gate the build, the runtime is Alpine, and the app runs as a non-root user with a health check. Third-party images are pinned by version and digest.
 
-Break `checkout` and watch the alert arrive:
-
-The database password comes from a git-ignored `.env` file:
+The database password comes from a git-ignored `.env` file. Break `checkout` and watch the alert arrive:
 
 ```sh
 cd triage-agent
@@ -95,6 +93,13 @@ curl -X POST 'localhost:8081/admin/fail-rate?rate=0'   # fix it again
 docker compose down && docker compose up -d --wait     # triages are still there afterwards
 curl -s localhost:8080/triages
 docker compose down -v                                 # -v also deletes the pgdata volume
+```
+
+[`scripts/smoke-test.sh`](scripts/smoke-test.sh) runs the same check end to end against a fresh stack. It breaks `checkout`, waits up to 3 minutes for the triage, restarts the agent and checks that the triage came back from Postgres:
+
+```sh
+docker compose up -d --build --wait && scripts/smoke-test.sh
+docker compose down -v
 ```
 
 The rule's windows are seconds rather than minutes so the demo is quick. Inside the network, services reach each other by name, for example `http://agent:8080/healthz`.
@@ -131,3 +136,4 @@ In CI, [`.github/workflows/triage-agent.yaml`](../.github/workflows/triage-agent
 
 - It builds both images with Buildx, with layers cached per image in the GitHub Actions cache. Each Dockerfile's test stage runs the unit tests, so a failing test fails the build.
 - It runs the tests against a Postgres service container. `REQUIRE_DATABASE_TESTS=1` is set there, so if the database is missing, the Postgres cases fail instead of being skipped.
+- It loads the two images it just built, starts the whole Compose stack with a throwaway password, and runs the smoke test. If it fails, the job prints every container's logs.

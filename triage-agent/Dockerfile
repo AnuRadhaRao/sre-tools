@@ -36,6 +36,11 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
 
+# The base image's krb5-libs has HIGH CVEs that Alpine fixed in 1.22.3-r0 (Trivy found
+# them). The ">=" makes the build fail rather than ship the old version. Drop this line
+# once the pinned python:3.12-alpine base includes the fix.
+RUN apk add --no-cache "krb5-libs>=1.22.3-r0"
+
 # A fixed, unprivileged user. The numeric uid lets Kubernetes runAsNonRoot verify it.
 RUN addgroup -S -g 10001 app && adduser -S -D -H -u 10001 -G app app
 

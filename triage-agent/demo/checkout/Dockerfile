@@ -12,6 +12,10 @@ FROM python:3.12-alpine@sha256:2f83d24758cf1ad4a38975d83bf48e5d10b121499bffec99d
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
+# The base image's krb5-libs has HIGH CVEs that Alpine fixed in 1.22.3-r0 (Trivy found
+# them). The ">=" makes the build fail rather than ship the old version. Drop this line
+# once the pinned python:3.12-alpine base includes the fix.
+RUN apk add --no-cache "krb5-libs>=1.22.3-r0"
 RUN addgroup -S -g 10001 app && adduser -S -D -H -u 10001 -G app app
 WORKDIR /app
 # Makes the runtime stage depend on the test stage, so tests always run.

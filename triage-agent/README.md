@@ -135,5 +135,6 @@ docker rm -f pg-test
 In CI, [`.github/workflows/triage-agent.yaml`](../.github/workflows/triage-agent.yaml) runs on every change under `triage-agent/`:
 
 - It builds both images with Buildx, with layers cached per image in the GitHub Actions cache. Each Dockerfile's test stage runs the unit tests, so a failing test fails the build.
+- It scans each image with [Trivy](https://trivy.dev) and fails if there is a HIGH or CRITICAL vulnerability that already has a fix, in Alpine packages or Python libraries.
 - It runs the tests against a Postgres service container. `REQUIRE_DATABASE_TESTS=1` is set there, so if the database is missing, the Postgres cases fail instead of being skipped.
 - It loads the two images it just built, starts the whole Compose stack with a throwaway password, and runs the smoke test. If it fails, the job prints every container's logs.
